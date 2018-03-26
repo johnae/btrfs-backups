@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -- $SSH_ORIGINAL_COMMAND
 
 CMD=$1

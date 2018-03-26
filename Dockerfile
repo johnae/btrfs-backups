@@ -7,7 +7,7 @@ COPY usr /usr
 COPY cmd.sh /cmd.sh
 WORKDIR /root
 
-RUN apk add -U openssh btrfs-progs coreutils
+RUN apk add -U openssh btrfs-progs coreutils bash
 
 # configure ssh
 RUN sed -i \
