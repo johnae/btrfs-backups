@@ -5,5 +5,8 @@ env > /etc/environment
 sed -i 's/PermitRootLogin.*/PermitRootLogin Yes/g' /etc/ssh/sshd_config
 chmod 0700 ~/.ssh
 chmod 0600 ~/.ssh/authorized_keys
-ssh-keygen -q -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
+if [ ! -e "/storage/ssh_host_rsa_key" ]; then
+    ssh-keygen -q -t rsa -N '' -f /storage/ssh_host_rsa_key
+fi
+cp /storage/ssh_host_rsa_key /etc/ssh/
 exec /usr/sbin/sshd -D -p $SSH_PORT
