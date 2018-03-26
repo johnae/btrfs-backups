@@ -19,19 +19,19 @@ cleanup() {
     latest=$(date +%Y%m%d%H%M -d @$(stat -c %Z $BACKUP/.backup-latest))
     if [ -e $BACKUP/.backup-$latest ]; then
       echo "Preexisting $BACKUP/.backup-$latest, removing first"
-      sudo btrfs subvolume delete $BACKUP/.backup-$latest
+      btrfs subvolume delete $BACKUP/.backup-$latest
     fi
     echo "Move $BACKUP/.backup-latest to $BACKUP/.backup-$latest"
-    sudo mv $BACKUP/.backup-latest $BACKUP/.backup-$latest
- 
+    mv $BACKUP/.backup-latest $BACKUP/.backup-$latest
+
     echo "Moving new remote backup $BACKUP/.backup-new to $BACKUP/.backup-latest..."
-    sudo mv $BACKUP/.backup-new $BACKUP/.backup-latest
+    mv $BACKUP/.backup-new $BACKUP/.backup-latest
 
     echo "Cleaning out old daily snapshots"
     for snap in $((ls -da $BACKUP/.backup-$TODAY* || true) | sort -r | tail -n +$((MAXDAILY+1))); do
       echo "Removing old daily snapshot: '$snap'"
-      echo "sudo btrfs subvolume delete $snap"
-      sudo btrfs subvolume delete $snap
+      echo "btrfs subvolume delete $snap"
+      btrfs subvolume delete $snap
     done
 
     echo "Cleaning out snapshots older than today, keeping a weeks worth ($KEEPDAILY per day)"
@@ -46,13 +46,13 @@ cleanup() {
       k=${keep[$day]}
       if [ "$k" != "1" ]; then
         echo "Removing snap older than a week: $snap"
-        echo "sudo btrfs subvolume delete $snap"
-        sudo btrfs subvolume delete $snap
+        echo "btrfs subvolume delete $snap"
+        btrfs subvolume delete $snap
       else
         for dailysnap in $((ls -da $BACKUP/.backup-$day* || true) | sort -r | tail -n +$((KEEPDAILY+1))); do
           echo "Remove old snap $dailysnap (keeping one per day)"
-          echo "sudo btrfs subvolume delete $dailysnap"
-          sudo btrfs subvolume delete $dailysnap
+          echo "btrfs subvolume delete $dailysnap"
+          btrfs subvolume delete $dailysnap
         done
       fi
     done
@@ -63,10 +63,10 @@ receive() {
   BACKUP=$1
   if [ -e $BACKUP/.backup-new ]; then
     echo "Preexisting $BACKUP/.backup-new, removing before receiving..."
-    sudo btrfs subvolume delete $BACKUP/.backup-new
+    btrfs subvolume delete $BACKUP/.backup-new
   fi
-  echo "sudo btrfs receive \"$BACKUP\""
-  if ! sudo btrfs receive "$BACKUP"; then
+  echo "btrfs receive \"$BACKUP\""
+  if ! btrfs receive "$BACKUP"; then
     echo >&2 "error receiving backup"
     exit 1
   fi
@@ -93,10 +93,10 @@ check() {
 setup() {
   BACKUP=$1
   echo "Setting up backup '$BACKUP'"
-  echo "sudo mkdir -p \"$(dirname $BACKUP)\""
-  sudo mkdir -p "$(dirname $BACKUP)"
-  echo "sudo btrfs subvolume create \"$BACKUP\""
-  sudo btrfs subvolume create "$BACKUP" || true
+  echo "mkdir -p \"$(dirname $BACKUP)\""
+  mkdir -p "$(dirname $BACKUP)"
+  echo "btrfs subvolume create \"$BACKUP\""
+  btrfs subvolume create "$BACKUP" || true
   exit 0
 }
 
