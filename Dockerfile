@@ -3,6 +3,7 @@ FROM alpine:edge
 ENV SSH_PORT 22
 
 COPY ssh /root/.ssh
+COPY usr /usr
 COPY cmd.sh /cmd.sh
 WORKDIR /root
 
