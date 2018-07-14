@@ -9,6 +9,8 @@ WORKDIR /root
 
 RUN apk add -U openssh btrfs-progs coreutils bash
 
+VOLUME /storage
+
 # configure ssh
 RUN sed -i \
         -e 's/^#*\(PermitRootLogin\) .*/\1 yes/' \

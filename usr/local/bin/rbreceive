@@ -1,56 +1,61 @@
 #!/bin/bash
 set -- $SSH_ORIGINAL_COMMAND
 
-CMD=$1
-DEST=$2
-MAXDAILY=5
-KEEPDAILY=1
-TODAY=$(date +%Y%m%d)
+cmd=$1
+dest=$2
+maxdaily=5
+keepdaily=1
+today=$(date +%Y%m%d)
+
+snapshot=.snapshot
+current=current
+new=new
+
 for i in {0..7}; do ((keep[$(date +%Y%m%d -d "-$i day")]++)); done
 
-if [ -z "$DEST" ]; then
-  echo "Sorry, you must provide a destination as second argument"
+if [ -z "$dest" ]; then
+  echo "sorry, you must provide a destination as second argument"
   exit 1
 fi
 
-cleanup() {
-  BACKUP=$1
-  if [ -e $BACKUP/.backup-new ]; then
-    latest=$(date +%Y%m%d%H%M -d @$(stat -c %Z $BACKUP/.backup-latest))
-    if [ -e $BACKUP/.backup-$latest ]; then
-      echo "Preexisting $BACKUP/.backup-$latest, removing first"
-      btrfs subvolume delete $BACKUP/.backup-$latest
+gc() {
+  store=$1
+  if [ -e $store/$snapshot-$new ]; then
+    last=$(date +%Y%m%d%H%M%S -d @$(stat -c %Z $store/$snapshot-$current))
+    if [ -e $store/$snapshot-$last ]; then
+      echo "preexisting $store/$snapshot-$last, removing first"
+      btrfs subvolume delete $store/$snapshot-$last
     fi
-    echo "Move $BACKUP/.backup-latest to $BACKUP/.backup-$latest"
-    mv $BACKUP/.backup-latest $BACKUP/.backup-$latest
+    echo "move $store/$snapshot-$current to $store/$snapshot-$last"
+    mv $store/$snapshot-$current $store/$snapshot-$last
 
-    echo "Moving new remote backup $BACKUP/.backup-new to $BACKUP/.backup-latest..."
-    mv $BACKUP/.backup-new $BACKUP/.backup-latest
+    echo "moving new remote backup $store/$snapshot-$new to $store/$snapshot-$current..."
+    mv $store/$snapshot-$new $store/$snapshot-$current
 
-    echo "Cleaning out old daily snapshots"
-    for snap in $((ls -da $BACKUP/.backup-$TODAY* || true) | sort -r | tail -n +$((MAXDAILY+1))); do
-      echo "Removing old daily snapshot: '$snap'"
+    echo "cleaning out old daily snapshots"
+    for snap in $((ls -da $store/$snapshot-$today* || true) | sort -r | tail -n +$((maxdaily+1))); do
+      echo "removing old daily snapshot: '$snap'"
       echo "btrfs subvolume delete $snap"
       btrfs subvolume delete $snap
     done
 
-    echo "Cleaning out snapshots older than today, keeping a weeks worth ($KEEPDAILY per day)"
-    for snap in $((ls -da $BACKUP/.backup-2* || true) | sort -r); do
+    echo "cleaning out snapshots older than today, keeping a weeks worth ($keepdaily per day)"
+    for snap in $((ls -da $store/$snapshot-2* || true) | sort -r); do
       name=$(basename $snap)
-      when=$(echo $name | sed 's|\.backup-||g')
+      when=$(echo $name | sed "s|$snapshot-||g")
       day=$(echo $when | cut -c1-8)
-      if [ "$day" = "$TODAY" ]; then
-        echo "Skip $snap (today)"
+      if [ "$day" = "$today" ]; then
+        echo "skip $snap (today)"
         continue
       fi
       k=${keep[$day]}
       if [ "$k" != "1" ]; then
-        echo "Removing snap older than a week: $snap"
+        echo "removing snap older than a week: $snap"
         echo "btrfs subvolume delete $snap"
         btrfs subvolume delete $snap
       else
-        for dailysnap in $((ls -da $BACKUP/.backup-$day* || true) | sort -r | tail -n +$((KEEPDAILY+1))); do
-          echo "Remove old snap $dailysnap (keeping one per day)"
+        for dailysnap in $((ls -da $store/$snapshot-$day* || true) | sort -r | tail -n +$((keepdaily+1))); do
+          echo "remove old snap $dailysnap (keeping one per day)"
           echo "btrfs subvolume delete $dailysnap"
           btrfs subvolume delete $dailysnap
         done
@@ -60,27 +65,27 @@ cleanup() {
 }
 
 receive() {
-  BACKUP=$1
-  if [ -e $BACKUP/.backup-new ]; then
-    echo "Preexisting $BACKUP/.backup-new, removing before receiving..."
-    btrfs subvolume delete $BACKUP/.backup-new
+  store=$1
+  if [ -e $store/$snapshot-$new ]; then
+    echo "preexisting $store/$snapshot-$new, removing before receiving..."
+    btrfs subvolume delete $store/$snapshot-$new
   fi
-  echo "btrfs receive \"$BACKUP\""
-  if ! btrfs receive "$BACKUP"; then
-    echo >&2 "error receiving backup"
+  echo "btrfs receive \"$store\""
+  if ! btrfs receive "$store"; then
+    echo >&2 "error receiving snapshot"
     exit 1
   fi
   sync
-  cleanup $BACKUP
+  gc $store
 }
 
 exists() {
-  BACKUP=$1
-  if test -e "$BACKUP" && test -e "$BACKUP/.backup-latest"; then
-    echo "$BACKUP and $BACKUP/.backup-latest exists"
+  store=$1
+  if test -e "$store" && test -e "$store/$snapshot-$current"; then
+    echo "$store and $store/$snapshot-$current exist"
     exit 0
   else
-    echo "$BACKUP and $BACKUP/.backup-latest does not exist"
+    echo "$store and $store/$snapshot-$current do not exist"
     exit 1
   fi
 }
@@ -91,34 +96,34 @@ check() {
 }
 
 setup() {
-  BACKUP=$1
-  echo "Setting up backup '$BACKUP'"
-  echo "mkdir -p \"$(dirname $BACKUP)\""
-  mkdir -p "$(dirname $BACKUP)"
-  echo "btrfs subvolume create \"$BACKUP\""
-  btrfs subvolume create "$BACKUP" || true
+  store=$1
+  echo "setting up backup '$store'"
+  echo "mkdir -p \"$(dirname $store)\""
+  mkdir -p "$(dirname $store)"
+  echo "btrfs subvolume create \"$store\""
+  btrfs subvolume create "$store" || true
   exit 0
 }
 
 nocommand() {
-  echo >&2 "Sorry only receive, exists, check and setup commands are allowed - they all take the destination path"
+  echo >&2 "sorry only receive, exists, check and setup commands are allowed - they all take the destination path"
   exit 1
 }
 
-case "$CMD" in
+case "$cmd" in
   receive)
-    receive $DEST
+    receive $dest
     ;;
   setup)
-    setup $DEST
+    setup $dest
     ;;
   exists)
-    exists $DEST
+    exists $dest
     ;;
   check)
-    check $DEST
+    check $dest
     ;;
   *)
-    nocommand $DEST
+    nocommand $dest
     ;;
 esac
