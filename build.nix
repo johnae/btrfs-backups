@@ -38,6 +38,7 @@ let
 
     cmd=''${1:-}
     dest=''${2:-}
+    echo "cmd: '$cmd', dest: '$dest'"
     maxdaily=''${MAX_DAILY:-5}
     keepdaily=''${KEEP_DAILY:-1}
     today=$(date +%Y%m%d)
