@@ -36,8 +36,8 @@ let
   rbreceive = writeStrictShellScriptBin "rbreceive" ''
     set -- "$SSH_ORIGINAL_COMMAND"
 
-    cmd=$1
-    dest=$2
+    cmd=''${1:-}
+    dest=''${2:-}
     maxdaily=''${MAX_DAILY:-5}
     keepdaily=''${KEEP_DAILY:-1}
     today=$(date +%Y%m%d)
