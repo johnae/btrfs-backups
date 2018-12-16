@@ -1,0 +1,49 @@
+references:
+  prepare_ci: &prepare_ci
+    run:
+      name: Prepare CI Environment
+      command: |
+        nix-channel --add \
+        https://nixos.org/channels/nixpkgs-unstable nixpkgs && \
+        nix-channel --update
+
+version: 2
+jobs:
+  build_and_push:
+    docker:
+      - image: nixorg/nix:circleci
+    steps:
+
+      - checkout
+      - *prepare_ci
+      - run:
+          name: Build image
+          command: |
+            nix-shell --run bash <<NIXSH
+              nix-build \
+                --argstr dockerRepo $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME \
+                --argstr dockerTag $CIRCLE_SHA1 \
+                build.nix
+            NIXSH
+      - setup_remote_docker
+      - run:
+          name: Docker import and push
+          command: |
+            nix-shell --run bash <<'NIXSH'
+              IMAGE_TAG=$(docker load < result | awk '{print $NF}')
+              REPO=$(echo "$IMAGE_TAG" | awk -F':' '''{print $1}')
+              echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+              docker tag "$IMAGE_TAG" "$REPO:$CIRCLE_TAG"
+              docker push "$REPO:$CIRCLE_TAG"
+            NIXSH
+
+workflows:
+  version: 2
+  build_and_push:
+    jobs:
+      - build_and_push:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9\.-]+/
