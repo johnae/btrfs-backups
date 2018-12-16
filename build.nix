@@ -172,7 +172,7 @@ in
 dockerTools.buildLayeredImage {
   name = dockerRepo;
   tag = dockerTag;
-  contents = [ rbreceive btrfsProgs coreutils ];
+  contents = [ rbreceive openssh btrfsProgs coreutils ];
 
   config = {
     Entrypoint = [ "${entrypoint}/bin/entrypoint.sh" ];
