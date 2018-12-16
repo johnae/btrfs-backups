@@ -46,6 +46,8 @@ let
     current=current
     new=new
 
+    declare -a keep
+
     for i in {0..7}; do ((keep[$(date +%Y%m%d -d "-$i day")]++)); done
 
     if [ -z "$dest" ]; then
