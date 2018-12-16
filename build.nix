@@ -47,8 +47,9 @@ let
     new=new
 
     declare -a keep
-
-    for i in {0..7}; do ((keep[$(date +%Y%m%d -d "-$i day")]++)); done
+    for i in {0..7}; do
+        keep[$(date +%Y%m%d -d "-$i day")]="1";
+    done
 
     if [ -z "$dest" ]; then
       echo "sorry, you must provide a destination as second argument"
