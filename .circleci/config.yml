@@ -35,7 +35,6 @@ jobs:
               echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
               docker tag "$IMAGE_TAG" "$REPO:$CIRCLE_TAG"
               docker push "$REPO:$CIRCLE_TAG"
-              docker push "$IMAGE_TAG"
             NIXSH
 
 workflows:
