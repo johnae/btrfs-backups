@@ -34,7 +34,8 @@ let
   '';
 
   rbreceive = writeStrictShellScriptBin "rbreceive" ''
-    set -- "$SSH_ORIGINAL_COMMAND"
+    # shellcheck disable=SC2086
+    set -- $SSH_ORIGINAL_COMMAND
 
     cmd=''${1:-}
     dest=''${2:-}
