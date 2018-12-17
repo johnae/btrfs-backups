@@ -77,7 +77,7 @@ let
             echo "skip $snap (today)"
             continue
           fi
-          k=''${keep[$day]}
+          k=''${keep[$day]:-}
           if [ "$k" != "1" ]; then
             echo "removing snap older than a week: $snap"
             echo "btrfs subvolume delete $snap"
