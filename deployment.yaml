@@ -38,6 +38,6 @@ spec:
       volumes:
       - name: storage-volume
         hostPath:
-          path: /mnt/@backups
+          path: /mnt/backups/@backups
       nodeSelector:
         kubernetes.io/hostname: titan
