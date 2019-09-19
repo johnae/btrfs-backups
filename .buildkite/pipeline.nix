@@ -11,6 +11,7 @@ let
 
   DOCKER_REGISTRY = "johnae";
   PROJECT_NAME = "btrfs-backups";
+  SHORTSHA = substring 0 7 (getEnv "BUILDKITE_COMMIT");
 
 in
 
@@ -38,23 +39,13 @@ in
 
     wait
 
-    (step ":pipeline: Deploy" {
-      agents = { queue = "linux"; };
-      env = { inherit DOCKER_REGISTRY PROJECT_NAME; };
-      command = ''
-        nix-shell .buildkite/build.nix --run strict-bash <<'NIXSH'
-          echo --- Apply kubernetes manifest
-
-          cat<<NEWTAG | tee -a kustomization.yaml
-
-        imageTags:
-        - name: $DOCKER_REGISTRY/$PROJECT_NAME
-          newTag: bk-$BUILDKITE_BUILD_NUMBER
-        NEWTAG
-
-          kustomize build . | kubectl apply -f -
-        NIXSH
-      '';
+    (deploy-to-kubernetes {
+      application = "btrfs-backups";
+      shortsha = SHORTSHA;
+      manifests-path = ".";
+      approval = false;
+      image = "${DOCKER_REGISTRY}/${PROJECT_NAME}";
+      image-tag = "bk-${getEnv "BUILDKITE_BUILD_NUMBER"}";
     })
 
   ]);
