@@ -40,7 +40,7 @@ in
     wait
 
     (deploy-to-kubernetes {
-      application = "btrfs-backups";
+      application = PROJECT_NAME;
       shortsha = SHORTSHA;
       manifests-path = ".";
       approval = false;
