@@ -1,4 +1,4 @@
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: btrfs-backups
@@ -38,6 +38,6 @@ spec:
       volumes:
       - name: storage-volume
         hostPath:
-          path: /mnt/backups/@backups
+          path: /mnt/backup/@backups
       nodeSelector:
         kubernetes.io/hostname: titan

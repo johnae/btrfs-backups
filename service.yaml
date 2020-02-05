@@ -4,6 +4,8 @@ metadata:
   name: btrfs-backups
   labels:
     app: btrfs-backups
+  annotations:
+    metallb.universe.tf/allow-shared-ip: sshserv
 spec:
   type: LoadBalancer
   loadBalancerIP: 192.168.240.241
