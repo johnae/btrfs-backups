@@ -2,51 +2,34 @@
 ##
 ## nix eval -f .buildkite/pipeline.nix --json steps
 
-with import <insanepkgs> { };
+with import <insanepkgs> {};
 with builtins;
 with lib;
-with buildkite-pipeline;
-
+with buildkite;
 let
-
-  DOCKER_REGISTRY = "johnae";
-  PROJECT_NAME = "btrfs-backups";
-  SHORTSHA = substring 0 7 (getEnv "BUILDKITE_COMMIT");
-
+  IMAGE_TAG = "bk-${BUILDKITE_BUILD_NUMBER}";
 in
-
-{
-
-  steps = pipeline ([
-
-    (step ":pipeline: Build and Push image" {
-      agents = { queue = "linux"; };
-      env = { inherit DOCKER_REGISTRY PROJECT_NAME; };
+pipeline [
+  (
+    (run ":pipeline: Build and Push image" {
+      key = "docker";
       command = ''
-        nix-shell .buildkite/build.nix --run strict-bash <<'NIXSH'
-          echo +++ Nix Build
-          nix-build --argstr dockerRegistry "$DOCKER_REGISTRY" \
-                    --argstr dockerTag bk-"$BUILDKITE_BUILD_NUMBER" docker.nix
+        echo +++ Nix Build
+        nix-build --argstr dockerRegistry "${DOCKER_REGISTRY}" \
+                  --argstr dockerTag "${IMAGE_TAG}" docker.nix
 
-          echo +++ Docker import
-          docker load < result
+        echo +++ Docker import
+        docker load < result
 
-          echo +++ Docker push
-          docker push johnae/"$PROJECT_NAME":bk-"$BUILDKITE_BUILD_NUMBER"
-        NIXSH
+        echo +++ Docker push
+        docker push ${DOCKER_REGISTRY}/${PROJECT_NAME}:bk-${BUILDKITE_BUILD_NUMBER}
       '';
     })
-
-    wait
-
-    (deploy-to-kubernetes {
-      application = PROJECT_NAME;
-      shortsha = SHORTSHA;
-      manifests-path = ".";
-      approval = false;
-      image = "${DOCKER_REGISTRY}/${PROJECT_NAME}";
-      image-tag = "bk-${getEnv "BUILDKITE_BUILD_NUMBER"}";
-    })
-
-  ]);
-}
+  )
+  (
+    deploy {
+      dependsOn = [ "docker" ];
+      imageTag = "bk-${BUILDKITE_BUILD_NUMBER}";
+    }
+  )
+]
